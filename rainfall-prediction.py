@@ -39,21 +39,36 @@ def get_coordinates(location):
 
 def get_rainfall_forecast(lat, lon):
     """
-    Fetch rainfall data from NASA POWER API. 
+    Fetch rainfall data from Open-Meteo
     Open meteo limits 10, 000 calls per day
+    Fetch 7-day rainfall forecast from Open-Meteo API.
     """
-    payload = { 'parameters': 'PRECTOTCORR', 'community': 'ag', 'latitude': lat, 'longitude': lon, 'start': 20250320, 'end': 20250329, 'format': 'JSON' }
-    url = "https://power.larc.nasa.gov/api/temporal/daily/point"
+    payload = { 'latitude': lat, 'longitude': lon, 'daily': 'precipitation_sum', 'timezone': 'Africa/Nairobi' }
+    url = "https://api.open-meteo.com/v1/forecast"
+
+    try:
+        r = requests.get(url, params=payload)
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(e.response.text)
+    except requests.exceptions.ConnectionError as er:
+        print(er.response.text)
+    except requests.exceptions.Timeout as eg:
+        print(eg.response.text)
+    except requests.exceptions.RequestException as err:
+        print(err.response.text)
     
-    r = requests.get(url, params=payload)
     data = r.json()
-    print(data)
-    
-    if 'parameters' in data and 'PRECTOTCORR' in data['parameters']:
-        rainfall_data = data['parameters']['PRECTOTCORR']
-        return rainfall_data
+
+    if "daily" in data and "precipitation_sum" in data["daily"]:
+        dates = data["daily"]["time"]
+        rainfall = data["daily"]["precipitation_sum"]
+
+        forecast = [{"date": dates[i], "rainfall_mm": rainfall[i]} for i in range(len(dates))]
+        return forecast
     else:
-        return "No rainfall data available"
+        return "No rainfall forecast available."
+    
 
 def main():
     location = input("Enter your County and Sub-county (e.g., Nakuru, Bahati): ")
