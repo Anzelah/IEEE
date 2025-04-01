@@ -36,17 +36,21 @@ def get_coordinates(location):
     else:
         return None, None
 
+
 def get_rainfall_forecast(lat, lon):
     """
-    Fetch rainfall data from NASA POWER API.
+    Fetch rainfall data from NASA POWER API. 
+    Open meteo limits 10, 000 calls per day
     """
-    url = f"https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOT&latitude={lat}&longitude={lon}&start=20240325&end=20240405&format=JSON"
+    payload = { 'parameters': 'PRECTOTCORR', 'community': 'ag', 'latitude': lat, 'longitude': lon, 'start': 20250320, 'end': 20250329, 'format': 'JSON' }
+    url = "https://power.larc.nasa.gov/api/temporal/daily/point"
     
-    response = requests.get(url)
-    data = response.json()
+    r = requests.get(url, params=payload)
+    data = r.json()
+    print(data)
     
-    if 'parameters' in data and 'PRECTOT' in data['parameters']:
-        rainfall_data = data['parameters']['PRECTOT']
+    if 'parameters' in data and 'PRECTOTCORR' in data['parameters']:
+        rainfall_data = data['parameters']['PRECTOTCORR']
         return rainfall_data
     else:
         return "No rainfall data available"
