@@ -40,11 +40,11 @@ def get_coordinates(location):
 def get_rainfall_forecast(lat, lon):
     """
     Fetch rainfall data from Open-Meteo
-    Open meteo limits 10, 000 calls per day
-    Fetch 7-day rainfall forecast from Open-Meteo API.
+    Open meteo limits 10, 000 calls per day. By default, it fetches rainfall forecast of seven days from current day.
     """
-    payload = { 'latitude': lat, 'longitude': lon, 'daily': 'precipitation_sum', 'timezone': 'Africa/Nairobi' }
+    
     url = "https://api.open-meteo.com/v1/forecast"
+    payload = { 'latitude': lat, 'longitude': lon, 'daily': 'precipitation_sum', 'timezone': 'Africa/Nairobi' } # data is returned in localtime starting at 00.00 local time
 
     try:
         r = requests.get(url, params=payload)
@@ -64,7 +64,7 @@ def get_rainfall_forecast(lat, lon):
         dates = data["daily"]["time"]
         rainfall = data["daily"]["precipitation_sum"]
 
-        forecast = [{"date": dates[i], "rainfall_mm": rainfall[i]} for i in range(len(dates))]
+        forecast = ['Date: {}, Rainfall: {}mm' .format(dates[i], rainfall[i]) for i in range(len(dates))]
         return forecast
     else:
         return "No rainfall forecast available."
