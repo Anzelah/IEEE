@@ -63,13 +63,12 @@ def get_rainfall_forecast(lat, lon):
         print(err.response.text)
     
     data = r.json()
-    print(data)
 
     if "daily" in data and "precipitation_sum" in data["daily"]:
         dates = data["daily"]["time"]
         rainfall = data["daily"]["precipitation_sum"]
 
-        forecast = ['date: {}, rainfall_mm: {}' .format(dates[i], rainfall[i]) for i in range(len(dates))]
+        forecast = [{ "date": dates[i], "rainfall_mm": rainfall[i] } for i in range(len(dates))]
         return forecast
 
     return None
@@ -87,11 +86,12 @@ def analyze_rainfall(forecast):
     # For higher yields, maize should receive sufficient rainfall during the first 5 weeks after sowing(and the flowering period).
     # Factor in the innacuracy especially from 10-day forecasts. Might do 3-day forecasts (in addition to the 10-day forecasts)
 
+
     if not forecast:
         return "No rainfall data available. Cannot provide advice."
 
-    
-    past_rain = sum(f["rainfall_mm"] for f in forecast[:5])  # Last 5 days total
+    print(forecast)
+    past_rain = sum(f["rainfall_mm"] for f in forecast[:5])  # Last 5 days total forecast is a list/arrays
     last_3_days_rain = sum(f["rainfall_mm"] for f in forecast[:3])  # Last 3 days total
 
     first_7_days_rain = sum(forecast[i]["rainfall_mm"] for i in range(7, min(14, len(forecast))))  # Next 7 days
@@ -124,10 +124,10 @@ def main():
     
     if lat and lon:
         forecast = get_rainfall_forecast(lat, lon)
-        #advice = analyze_rainfall(forecast)
+        advice = analyze_rainfall(forecast)
 
-        #print(f"\n🌱 **Planting Advice for {location}:**\n")
-        #print(advice)
+        print(f"\n🌱 **Planting Advice for {location}:**\n")
+        print(advice)
     else:
         print("Invalid location. Please try again.")
 
