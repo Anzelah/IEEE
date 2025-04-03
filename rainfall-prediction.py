@@ -121,7 +121,7 @@ def analyze_rainfall(forecast):
     
 
 def main():
-    location = input("Enter your County and Sub-county (e.g., Nakuru, Bahati): ")
+    location = input("Enter your County and Sub-county(e.g., Nakuru, Bahati): ")
     lat, lon = get_coordinates(location)
     
     if lat and lon:
