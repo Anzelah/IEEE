@@ -90,7 +90,6 @@ def analyze_rainfall(forecast):
     if not forecast:
         return "No rainfall data available. Cannot provide advice."
 
-    print(forecast)
     past_rain = sum(f["rainfall_mm"] for f in forecast[:5])  # Last 5 days total forecast is a list/arrays
     last_3_days_rain = sum(f["rainfall_mm"] for f in forecast[:3])  # Last 3 days total
 
@@ -102,7 +101,11 @@ def analyze_rainfall(forecast):
     report += f"🌧 **Next 7 Days Expected:** {first_7_days_rain:.1f}mm\n"
 
     # 🌱 **Planting Conditions**
-    if first_7_days_rain < 25:
+    if past_rain < 23:
+        report += "\n⚠️ Too little rainfall in the past five days. Soil moisture might be too low. Wait for rains before planting"
+    elif past_rain > 80:
+        report += "\n⛔ Excessive rainfall in the past five days. Planting now may cause seed rot, poor germination, and waterlogging. Wait 2-3 dry days for the soil to drain before planting"
+    elif first_7_days_rain < 25:
         report += "\n⚠️ Too little rainfall expected (<25mm in 7 days). **Wait before planting.**"
     elif first_7_days_rain > 100:
         report += "\n⛔ Excessive rainfall (>100mm in 7 days). **Risk of waterlogging. Wait before planting.**"
