@@ -69,6 +69,7 @@ def get_rainfall_forecast(lat, lon):
         rainfall = data["daily"]["precipitation_sum"]
 
         forecast = [{ "date": dates[i], "rainfall_mm": rainfall[i] } for i in range(len(dates))]
+        print(forecast)
         return forecast
 
     return None
@@ -90,28 +91,28 @@ def analyze_rainfall(forecast):
     if not forecast:
         return "No rainfall data available. Cannot provide advice."
 
-    past_rain = sum(f["rainfall_mm"] for f in forecast[:5])  # Last 5 days total forecast is a list/arrays
+    past_rain = sum(f["rainfall_mm"] for f in forecast[:5])  # Last 5 days total forecast is a list/array of dicts. Len of forecast is 15
     last_3_days_rain = sum(f["rainfall_mm"] for f in forecast[:3])  # Last 3 days total
 
-    first_7_days_rain = sum(forecast[i]["rainfall_mm"] for i in range(7, min(14, len(forecast))))  # Next 7 days
+    first_10_days_rain = sum(forecast[i]["rainfall_mm"] for i in range(5, len(forecast)))  # Next 10 days
     max_daily_rain = max(forecast[i]["rainfall_mm"] for i in range(7, min(14, len(forecast))))  # Next 7 days
 
-    report = f"📅 **Past 7 Days Rainfall:** {past_rain:.1f}mm\n"
+    report = f"📅 **Past 5 Days Rainfall:** {past_rain:.1f}mm\n"
     report += f"📅 **Last 3 Days Rainfall:** {last_3_days_rain:.1f}mm\n"
-    report += f"🌧 **Next 7 Days Expected:** {first_7_days_rain:.1f}mm\n"
+    report += f"🌧 **Next 7 Days Expected:** {first_10_days_rain:.1f}mm\n"
 
     # 🌱 **Planting Conditions**
     if past_rain < 23:
         report += "\n⚠️ Too little rainfall in the past five days. Soil moisture might be too low. Wait for rains before planting"
     elif past_rain > 80:
         report += "\n⛔ Excessive rainfall in the past five days. Planting now may cause seed rot, poor germination, and waterlogging. Wait 2-3 dry days for the soil to drain before planting"
-    elif first_7_days_rain < 25:
-        report += "\n⚠️ Too little rainfall expected (<25mm in 7 days). **Wait before planting.**"
-    elif first_7_days_rain > 100:
-        report += "\n⛔ Excessive rainfall (>100mm in 7 days). **Risk of waterlogging. Wait before planting.**"
+    elif first_10_days_rain < 20:
+        report += "\n⚠️ Insufficient rainfall is expected in the next 10 days. Planting now may lead to poor germination and weak seedlings. Consider waiting for more rainfall before planting"
+    elif first_10_days_rain > 100:
+        report += "\n⛔ Excessive rainfall expected in the next 10 days. Heavy rain may cause seed rot, poor crop emergence, and prevent germination. Wait for at least 2-3 days after the rain subsides for the soil to dry out before planting."
     elif max_daily_rain > 10:
         report += "\n⛔ Heavy rain (>10mm per day). **Risk of waterlogging & poor germination.** Consider waiting."
-    elif first_7_days_rain < 40:
+    elif first_10_days_rain < 40:
         report += "\n⚠️ Initial rainfall too low (<40mm in 7 days). **Wait for more consistent rain.**"
     else:
         report += "\n✅ **Ideal conditions! You can plant now.**"
