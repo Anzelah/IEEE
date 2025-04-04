@@ -1,19 +1,14 @@
 import requests
 import pandas as pd
+import joblib
+import os
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
 
-# Load Rainfall Data from Existing System (Assuming it's stored as a CSV or DB)
-# Replace with actual function/method to access stored rainfall data
-def get_rainfall_data(county, sub_county):
-    # Dummy function to simulate fetching rainfall data from our existing system
-    # In real case, fetch from database or API endpoint
-    return {
-        "last_week_rain": 55,  # mm
-        "last_3_days_rain": 25,  # mm
-        "forecast_7_days": 80,  # mm (predicted)
-    }
 
 # Fetch Soil Data from SoilGrids API
-def get_soil_data(lat, lon):
+def fetch_soil_data(lat, lon):
     """
     Fetch existing soil data from soilgrids api. 
     This fetches the nitrogen, soil ph, organic carbon density, and phosphorus content
@@ -36,35 +31,105 @@ def get_soil_data(lat, lon):
 
 
     data = r.json()
-    return {
+    soil_data = {
         "nitrogen": data["properties"]["nitrogen"]["mean"] if "nitrogen" in data["properties"] else None,
         "phosphorus": data["properties"]["phosphorus"]["mean"] if "phosphorus" in data["properties"] else None,
         "pH": data["properties"]["phh2o"]["mean"] if "phh2o" in data["properties"] else None,
+        "potassium": data["properties"]["potassium"]["mean"] if "potassium" in data["properties"] else None,
         "organic_carbon": data["properties"]["ocd"]["mean"] if "ocd" in data["properties"] else None,
     }
+    return soil_data
 
-# Convert County/Sub-county/Ward to Coordinates (For Soil Data Fetching)
-def get_coordinates(county, sub_county):
-    # TODO: Implement a lookup for lat/lon based on administrative divisions (Use a geocoding service if needed)
-    return (-1.286389, 36.817223)  # Example: Nairobi coordinates
+# Sample Dataset with Previous Yield
+data = pd.DataFrame({
+    "soil_color": ["black", "brown", "red", "gray", "black"],
+    "water_retention": ["fast", "slow", "slow", "fast", "slow"],
+    "previous_crop": ["maize", "beans", "maize", "sorghum", "maize"],
+    "fertilizer_used": ["DAP", "None", "Urea", "Manure", "CAN"],
+    "previous_yield": [18, 12, 15, 20, 10],  # Bags per acre
+    "ph": [5.5, 6.2, 5.8, 7.0, 5.4],
+    "nitrogen": [0.12, 0.08, 0.14, 0.09, 0.11],
+    "phosphorus": [10, 12, 8, 15, 9],
+    "potassium": [200, 180, 220, 160, 190],
+    "organic_carbon": [1.2, 0.9, 1.4, 0.8, 1.1],  # Organic Carbon %
+    "recommended_fertilizer": ["NPK", "Compost", "DAP", "CAN", "Urea"],
+})
 
-# Main Function to Collect Data
-def collect_training_data(county, sub_county):
-    lat, lon = get_coordinates(county, sub_county)
-    soil_data = get_soil_data(lat, lon)
-    rainfall_data = get_rainfall_data(county, sub_county)
+# Convert Categorical Data to Numbers
+encoder = LabelEncoder()
+categorical_cols = ["soil_color", "water_retention", "previous_crop", "fertilizer_used"]
+for col in categorical_cols:
+    data[col] = encoder.fit_transform(data[col])
+
+# Train-Test Split
+X = data.drop(columns=["recommended_fertilizer"])  # Input features
+y = data["recommended_fertilizer"]  # Output labels
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train Model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Save Model
+joblib.dump(model, "fertilizer_recommendation_model.pkl")
+print("Model training complete. Saved as 'fertilizer_recommendation_model.pkl'")
+
+def get_coordinates(location):
+    """
+    Convert County and Sub-county(will add ward for more precisions) to GPS coordinates using OpenCage API.
+    This is because the NASA
+    """
+
+    OPENCAGE_API = os.getenv('OPENCAGE_API_KEY')
+
+    url = "https://api.opencagedata.com/geocode/v1/json"
+    payload = {'q': location, 'key': OPENCAGE_API, 'countrycode': 'ke'}
     
-    if soil_data and rainfall_data:
-        return {**soil_data, **rainfall_data, "county": county, "sub_county": sub_county }
+    try:
+        r = requests.get(url, params=payload)
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(e.response.text)
+    except requests.exceptions.ConnectionError as er:
+        print(er.response.text)
+    except requests.exceptions.Timeout as eg:
+        print(eg.response.text)
+    except requests.exceptions.RequestException as err:
+        print(err.response.text)
+        
+    data = r.json() # only proceeds to here if the request is succesful thanks to the raise-for-status function
+    if data['results']:
+        lat = data['results'][0]['geometry']['lat']
+        lon = data['results'][0]['geometry']['lng']
+        return lat, lon
     else:
-        return None
+        return None, None
 
-# Example Usage
-farmer_location = { "county": "Uasin Gishu", "sub_county": "Eldoret East" }
-data_entry = collect_training_data(**farmer_location)
-if data_entry:
-    df = pd.DataFrame([data_entry])
-    df.to_csv("training_data.csv", mode='a', index=False, header=False)
-    print("Data collected and stored successfully.")
-else:
-    print("Failed to collect data.")
+
+# Function for Farmer Input
+def get_farmer_input():
+    location = input("Enter your County and Sub-county(e.g., Nakuru, Bahati): ")
+    lat, lon = get_coordinates(location)
+
+    previous_yield = float(input("Enter your previous maize yield (bags per acre): "))  
+    soil_color = input("Enter your soil color (e.g., black, brown, red): ")
+    water_retention = input("Enter your soil's water retention (fast or slow): ")
+    previous_crop = input("Enter the previous crop grown (e.g., maize, beans): ")
+    fertilizer_used = input("Enter the type of fertilizer you used (e.g., DAP, CAN, Urea, Compost): ")
+    
+    # Fetch soil data from SoilGrids API
+    soil_data = fetch_soil_data(lat, lon)
+    
+    if soil_data:
+        # Combine farmer inputs with fetched soil data
+        soil_data["previous_yield"] = previous_yield
+        soil_data["soil_color"] = soil_color
+        soil_data["water_retention"] = water_retention
+        soil_data["previous_crop"] = previous_crop
+        soil_data["fertilizer_used"] = fertilizer_used
+
+        return soil_data
+    else:
+        print("Could not fetch soil data. Please check your location and try again.")
+        return None
