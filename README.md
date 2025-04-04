@@ -1,0 +1,1 @@
+To create a Node.js API backend. When the farmer submits their input (e.g., soil color, previous yield, etc.), the server will call this Python function (via a subprocess or HTTP request to a Python microservice), and the fertilizer recommendation will be sent back to the farmer.
