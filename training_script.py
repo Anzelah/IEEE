@@ -11,7 +11,7 @@ This script handles collecting data, preprocessing it, training the model, and s
 # Example data collection - You would replace this with real farmer data.
 data = {
     'soil_color': ['black', 'brown', 'red', 'black', 'brown'],
-    'water_retention': ['fast', 'slow', 'fast', 'slow', 'fast'],
+    'soil_texture': ['coarse', 'soft', 'coarse', 'soft', 'coarse'],
     'previous_crop': ['maize', 'beans', 'maize', 'beans', 'maize'],
     'fertilizer_used': ['DAP', 'Urea', 'DAP', 'Compost', 'DAP'],
     'previous_yield': [30, 25, 28, 22, 35],
@@ -29,7 +29,7 @@ df = pd.DataFrame(data)
 # Preprocessing - Encoding categorical variables
 encoder = LabelEncoder()
 df['soil_color'] = encoder.fit_transform(df['soil_color'])
-df['water_retention'] = encoder.fit_transform(df['water_retention'])
+df['soil_texture'] = encoder.fit_transform(df['soil_texture'])
 df['previous_crop'] = encoder.fit_transform(df['previous_crop'])
 df['fertilizer_used'] = encoder.fit_transform(df['fertilizer_used'])
 df['recommended_fertilizer'] = encoder.fit_transform(df['recommended_fertilizer'])

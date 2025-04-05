@@ -85,7 +85,7 @@ def get_farmer_input():
 
     previous_yield = float(input("Enter your previous maize yield (bags per acre): "))
     soil_color = input("Enter your soil color (e.g., black, brown, red): ")
-    water_retention = input("Enter your soil's water retention (fast or slow): ")
+    soil_texture = input("Enter your soil's texture (e.g. coarse or soft): ")
     previous_crop = input("Enter the previous crop grown (e.g., maize, beans): ")
     fertilizer_used = input("Enter the type of fertilizer you used (e.g., DAP, CAN, Urea, Compost): ")
 
@@ -96,14 +96,14 @@ def get_farmer_input():
         # Combine farmer inputs with fetched soil data
         soil_data["previous_yield"] = previous_yield
         soil_data["soil_color"] = soil_color
-        soil_data["water_retention"] = water_retention
+        soil_data["soil_texture"] = soil_texture
         soil_data["previous_crop"] = previous_crop
         soil_data["fertilizer_used"] = fertilizer_used
         
         # Prepare the data for prediction
         prediction_data = [
             soil_data["soil_color"], 
-            soil_data["water_retention"], 
+            soil_data["soil_texture"], 
             soil_data["previous_crop"], 
             soil_data["fertilizer_used"],
             soil_data["previous_yield"],

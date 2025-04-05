@@ -43,7 +43,7 @@ def fetch_soil_data(lat, lon):
 # Sample Dataset with Previous Yield
 data = pd.DataFrame({
     "soil_color": ["black", "brown", "red", "gray", "black"],
-    "water_retention": ["fast", "slow", "slow", "fast", "slow"],
+    "soil_texture": ["coarse", "soft", "soft", "coarse", "soft"],
     "previous_crop": ["maize", "beans", "maize", "sorghum", "maize"],
     "fertilizer_used": ["DAP", "None", "Urea", "Manure", "CAN"],
     "previous_yield": [18, 12, 15, 20, 10],  # Bags per acre
@@ -57,7 +57,7 @@ data = pd.DataFrame({
 
 # Convert Categorical Data to Numbers
 encoder = LabelEncoder()
-categorical_cols = ["soil_color", "water_retention", "previous_crop", "fertilizer_used"]
+categorical_cols = ["soil_color", "soil_texture", "previous_crop", "fertilizer_used"]
 for col in categorical_cols:
     data[col] = encoder.fit_transform(data[col])
 
@@ -114,7 +114,7 @@ def get_farmer_input():
 
     previous_yield = float(input("Enter your previous maize yield (bags per acre): "))  
     soil_color = input("Enter your soil color (e.g., black, brown, red): ")
-    water_retention = input("Enter your soil's water retention (fast or slow): ")
+    soil_texture = input("Enter your soil's texture (e.g. coarse, soft): ")
     previous_crop = input("Enter the previous crop grown (e.g., maize, beans): ")
     fertilizer_used = input("Enter the type of fertilizer you used (e.g., DAP, CAN, Urea, Compost): ")
     
@@ -125,7 +125,7 @@ def get_farmer_input():
         # Combine farmer inputs with fetched soil data
         soil_data["previous_yield"] = previous_yield
         soil_data["soil_color"] = soil_color
-        soil_data["water_retention"] = water_retention
+        soil_data["soil_texture"] = soil_texture
         soil_data["previous_crop"] = previous_crop
         soil_data["fertilizer_used"] = fertilizer_used
 
