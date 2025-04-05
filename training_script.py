@@ -11,7 +11,7 @@ This script handles collecting data, preprocessing it, training the model, and s
 # Example data collection - You would replace this with real farmer data.
 data = {
     'soil_color': ['black', 'brown', 'red', 'black', 'brown'],
-    'soil_texture': ['coarse', 'soft', 'coarse', 'soft', 'coarse'],
+    'soil_texture': ['coarse', 'fine', 'coarse', 'fine', 'coarse'],
     'previous_crop': ['maize', 'beans', 'maize', 'beans', 'maize'],
     'fertilizer_used': ['DAP', 'Urea', 'DAP', 'Compost', 'DAP'],
     'previous_yield': [30, 25, 28, 22, 35],

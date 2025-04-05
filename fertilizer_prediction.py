@@ -77,6 +77,10 @@ def fetch_soil_data(lat, lon):
 # Function to get farmer input and make predictions
 def get_farmer_input():
     # Ask for Farmer's Input
+    # Different soil texture: Need to refine more("1. Sandy – Feels gritty and falls apart easily, doesn't hold water well.")
+    # "2. Loamy – Feels soft and crumbly, holds together a bit, holds moisture well."
+    # "3. Clay – Feels sticky or smooth, holds together tightly, drains slowly."
+    # "4. Silty – Feels smooth like flour, holds moisture, but not sticky."
     print("Please provide the following details:")
 
     # Collect inputs
@@ -85,7 +89,7 @@ def get_farmer_input():
 
     previous_yield = float(input("Enter your previous maize yield (bags per acre): "))
     soil_color = input("Enter your soil color (e.g., black, brown, red): ")
-    soil_texture = input("Enter your soil's texture (e.g. coarse or soft): ")
+    soil_texture = input("Add a little water to your soil and rub it between your fingers. How does it feel? (e.g. gritty and falls apart easily, smooth and sticky - forms a ball, soft and holds together loosely, smooth like flour but not sticky): ")
     previous_crop = input("Enter the previous crop grown (e.g., maize, beans): ")
     fertilizer_used = input("Enter the type of fertilizer you used (e.g., DAP, CAN, Urea, Compost): ")
 

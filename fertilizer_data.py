@@ -43,7 +43,7 @@ def fetch_soil_data(lat, lon):
 # Sample Dataset with Previous Yield
 data = pd.DataFrame({
     "soil_color": ["black", "brown", "red", "gray", "black"],
-    "soil_texture": ["coarse", "soft", "soft", "coarse", "soft"],
+    "soil_texture": ["coarse", "fine", "fine", "coarse", "fine"],
     "previous_crop": ["maize", "beans", "maize", "sorghum", "maize"],
     "fertilizer_used": ["DAP", "None", "Urea", "Manure", "CAN"],
     "previous_yield": [18, 12, 15, 20, 10],  # Bags per acre
@@ -114,7 +114,7 @@ def get_farmer_input():
 
     previous_yield = float(input("Enter your previous maize yield (bags per acre): "))  
     soil_color = input("Enter your soil color (e.g., black, brown, red): ")
-    soil_texture = input("Enter your soil's texture (e.g. coarse, soft): ")
+    soil_texture = input("Enter your soil's texture (e.g. coarse, fine): ")
     previous_crop = input("Enter the previous crop grown (e.g., maize, beans): ")
     fertilizer_used = input("Enter the type of fertilizer you used (e.g., DAP, CAN, Urea, Compost): ")
     
