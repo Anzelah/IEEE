@@ -91,7 +91,7 @@ def get_farmer_input():
     soil_color = input("Enter your soil color (e.g., black, brown, red): ")
     soil_texture = input("Add a little water to your soil and rub it between your fingers. How does it feel? (e.g. gritty and falls apart easily, smooth and sticky - forms a ball, soft and holds together loosely, smooth like flour but not sticky): ")
     previous_crop = input("Enter the previous crop grown (e.g., maize, beans): ")
-    fertilizer_used = input("Enter the type of fertilizer you used (e.g., DAP, CAN, Urea, Compost): ")
+    fertilizer_used = input("Enter the type of fertilizer you used (e.g., DAP, CAN, Urea, Compost): ") # combine dwith yields, you can gauge their effectiveness
 
     # Fetch soil data from SoilGrids API
     soil_data = fetch_soil_data(lat, lon)
