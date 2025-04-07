@@ -52,16 +52,24 @@ def fetch_soil_data(lat, lon):
     Fetch existing soil data from soilgrids api. 
     This fetches the nitrogen, soil ph, organic carbon density, and phosphorus content
     """
-    print('Second')
-    payload = { 'lon': lon, 'lat': lat }
-    url = "https://rest.isda-africa.com/soil/point"
+    ISDA_API = os.getenv('ISDA_API_KEY')
+    payload = { 'key': ISDA_API, 'lon': lon, 'lat': lat, 'property': [ 'Carbon, organic', 'Nitrogen, total', 'Phosphorus, extractable', 'Potassium, extractable', 'pH' , 'USDA Texture Class' ], 'depth': 0-20 }
+
+    # Query layers endpoint for first time use, then now to our endpoint. Its: https://api.isda-africa.com/v1/layers?key=mykeynostring
+    url = "https://rest.isda-africa.com/soilproperty"
+
+    first_payload = { 'key': ISDA_API }
+    first_url = 'https://api.isda-africa.com/v1/layers'
+    res = requests.get(first_url, params=first_payload)
+    print(res)
+    # Only for first API call
 
     try:
         r = requests.get(url, params=payload, timeout=10)
         print(r.url) # test if url is alright and encoding okay
         r.raise_for_status()
     except requests.exceptions.RequestException as err:
-        print(f"Request failed during processing: {err}")
+        print("Request failed during processing: {}", format(err))
         return None
 
     try:
@@ -71,13 +79,13 @@ def fetch_soil_data(lat, lon):
         print("Empty or invalid JSON in response")
         return None
     
-    soil_data = {
+    soil_data = { 
+        "organic_carbon": data.get("carbon_organic"),  #returns an array of dictionaries
+        "nitrogen": data.get("nitrogen_total"),
+        "phosphorus": data.get("phosphorous_extractable"),
+        "potassium": data.get("potassium_extractable"),
         "ph": data.get("ph"),
-        "organic_carbon": data.get("organic_carbon"),
-        "texture": data.get("texture"),
-        "nitrogen": data.get("nitrogen"),
-        "phosphorus": data.get("phosphorus"),
-        "potassium": data.get("potassium")
+        "texture": data.get("texture_class")
     }
     return soil_data
 
@@ -89,17 +97,14 @@ def get_farmer_input():
     # "3. Clay – Feels sticky or smooth, holds together tightly, drains slowly."
     # "4. Silty – Feels smooth like flour, holds moisture, but not sticky."
     print('Third')
-    print("Please provide the following details:")
 
-    # Collect inputs
     location = input("Enter your County and Sub-county(e.g., Nakuru, Bahati): ")
     lat, lon = get_coordinates(location)
-
+    # Collect  farming-specific inputs to be used to train model as well
     previous_yield = float(input("Enter your previous maize yield (bags per acre): "))
-    soil_color = input("Enter your soil color (e.g., black, brown, red): ")
     soil_texture = input("Add a little water to your soil and rub it between your fingers. How does it feel? (e.g. gritty and falls apart easily, smooth and sticky - forms a ball, soft and holds together loosely, smooth like flour but not sticky): ")
     previous_crop = input("Enter the previous crop grown (e.g., maize, beans): ")
-    fertilizer_used = input("Enter the type of fertilizer you used (e.g., DAP, CAN, Urea, Compost): ") # combine dwith yields, you can gauge their effectiveness
+    fertilizer_used = input("Enter the type of fertilizer you used (e.g., DAP, CAN, Urea, Compost): ") # combined with yields, you can gauge their effectiveness. If implementing is hard, do it in v2
 
     # Fetch soil data from SoilGrids API
     soil_data = fetch_soil_data(lat, lon)
@@ -107,14 +112,12 @@ def get_farmer_input():
     if soil_data:
         # Combine farmer inputs with fetched soil data
         soil_data["previous_yield"] = previous_yield
-        soil_data["soil_color"] = soil_color
         soil_data["soil_texture"] = soil_texture
         soil_data["previous_crop"] = previous_crop
         soil_data["fertilizer_used"] = fertilizer_used
         
         # Prepare the data for prediction
         prediction_data = [
-            soil_data["soil_color"], 
             soil_data["soil_texture"], 
             soil_data["previous_crop"], 
             soil_data["fertilizer_used"],
@@ -123,7 +126,8 @@ def get_farmer_input():
             soil_data["nitrogen"],
             soil_data["phosphorus"],
             soil_data["potassium"],
-            soil_data["organic_carbon"]
+            soil_data["organic_carbon"],
+            soil_data["texture"]
         ]
         
         # Convert categorical data (e.g., soil_color, previous_crop) using LabelEncoder
