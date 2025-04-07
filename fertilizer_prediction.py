@@ -1,7 +1,8 @@
 import joblib
 import requests
 import os
-from dotenv import load_dotenv 
+from dotenv import load_dotenv
+import json 
 
 load_dotenv()
 
@@ -28,13 +29,15 @@ def get_coordinates(location):
         r = requests.get(url, params=payload)
         r.raise_for_status()
     except requests.exceptions.RequestException as err:
-        if err.response is not None:
-            print(err.response.text)
-        else:
-            print(f"Request failed: {err}")
+        print(f"Request failed during processing: {err}")
         return None
-        
-    data = r.json() # only proceeds to here if the request is succesful thanks to the raise-for-status function
+
+    try:    
+        data = r.json() # only proceeds to here if the request is succesful thanks to the raise-for-status function. However No content 204 might pass here
+    except json.JSONDecodeError:
+        print("Empty or invalid JSON in response")
+        return None
+    
     if data['results']:
         lat = data['results'][0]['geometry']['lat']
         lon = data['results'][0]['geometry']['lng']
@@ -58,14 +61,16 @@ def fetch_soil_data(lat, lon):
         print(r.url) # test if url is alright and encoding okay
         r.raise_for_status()
     except requests.exceptions.RequestException as err:
-        if err.response is not None:
-            print(err.response.text)
-        else:
-            print(f"Request failed: {err}")
+        print(f"Request failed during processing: {err}")
         return None
 
-    data = r.json()
-    print(data)
+    try:
+        data = r.json()
+        print(data)
+    except json.JSONDecodeError:
+        print("Empty or invalid JSON in response")
+        return None
+    
     soil_data = {
         "ph": data.get("ph"),
         "organic_carbon": data.get("organic_carbon"),
