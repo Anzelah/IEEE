@@ -1,13 +1,16 @@
 import joblib
 import requests
 import os
+from dotenv import load_dotenv 
+
+load_dotenv()
 
 """
 This script predict fertilizer recommendations based on input from the farmer plus soil data pulled from soilgrids API.
 """
 # Load the trained model and the label encoder
-model = joblib.load("fertilizer_recommendation_model.pkl")
-encoder = joblib.load("label_encoder.pkl")
+#model = joblib.load("fertilizer_recommendation_model.pkl")
+#encoder = joblib.load("label_encoder.pkl")
 
 def get_coordinates(location):
     """
@@ -16,6 +19,7 @@ def get_coordinates(location):
     """
 
     OPENCAGE_API = os.getenv('OPENCAGE_API_KEY')
+    print('First')
 
     url = "https://api.opencagedata.com/geocode/v1/json"
     payload = {'q': location, 'key': OPENCAGE_API, 'countrycode': 'ke'}
@@ -47,30 +51,29 @@ def fetch_soil_data(lat, lon):
     Fetch existing soil data from soilgrids api. 
     This fetches the nitrogen, soil ph, organic carbon density, and phosphorus content
     """
-    payload = { 'lon': lon, 'lat': lat, 'property': 'nitrogen,phh2o,ocd,phosphorus' }
-    url = "https://rest.isric.org/soilgrids/v2.0/properties"
+    print('Second')
+    payload = { 'lon': lon, 'lat': lat }
+    url = "https://rest.isda-africa.com/soil/point"
 
     try:
         r = requests.get(url, params=payload)
         print(r.url) # test if url is alright and encoding okay
         r.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        print(e.response.text)
-    except requests.exceptions.ConnectionError as er:
-        print(er.response.text)
-    except requests.exceptions.Timeout as eg:
-        print(eg.response.text)
     except requests.exceptions.RequestException as err:
         print(err.response.text)
+        return None
 
 
+    print('Reached here')
     data = r.json()
+    print(data)
     soil_data = {
-        "nitrogen": data["properties"]["nitrogen"]["mean"] if "nitrogen" in data["properties"] else None,
-        "phosphorus": data["properties"]["phosphorus"]["mean"] if "phosphorus" in data["properties"] else None,
-        "pH": data["properties"]["phh2o"]["mean"] if "phh2o" in data["properties"] else None,
-        "potassium": data["properties"]["potassium"]["mean"] if "potassium" in data["properties"] else None,
-        "organic_carbon": data["properties"]["ocd"]["mean"] if "ocd" in data["properties"] else None,
+        "ph": data.get("ph"),
+        "organic_carbon": data.get("organic_carbon"),
+        "texture": data.get("texture"),
+        "nitrogen": data.get("nitrogen"),
+        "phosphorus": data.get("phosphorus"),
+        "potassium": data.get("potassium")
     }
     return soil_data
 
@@ -81,6 +84,7 @@ def get_farmer_input():
     # "2. Loamy – Feels soft and crumbly, holds together a bit, holds moisture well."
     # "3. Clay – Feels sticky or smooth, holds together tightly, drains slowly."
     # "4. Silty – Feels smooth like flour, holds moisture, but not sticky."
+    print('Third')
     print("Please provide the following details:")
 
     # Collect inputs
@@ -138,6 +142,19 @@ def get_farmer_input():
         return None
 
 # Example of how this function might be called
-farmer_data = get_farmer_input()
-if farmer_data:
-    print(farmer_data)
+def main():
+    location = input("Enter your County and Sub-county(e.g., Nakuru, Bahati): ")
+    lat, lon = get_coordinates(location)
+    
+    if lat and lon:
+        soil_data = fetch_soil_data(lat, lon)
+        #advice = analyze_rainfall(forecast)
+
+        print(f"\n🌱 **Planting Advice for {location}:**\n")
+        print(soil_data)
+    else:
+        print("Invalid location. Please try again.")
+
+
+if __name__ == "__main__":
+    main()
