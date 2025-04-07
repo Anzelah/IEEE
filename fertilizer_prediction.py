@@ -27,14 +27,12 @@ def get_coordinates(location):
     try:
         r = requests.get(url, params=payload)
         r.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        print(e.response.text)
-    except requests.exceptions.ConnectionError as er:
-        print(er.response.text)
-    except requests.exceptions.Timeout as eg:
-        print(eg.response.text)
     except requests.exceptions.RequestException as err:
-        print(err.response.text)
+        if err.response is not None:
+            print(err.response.text)
+        else:
+            print(f"Request failed: {err}")
+        return None
         
     data = r.json() # only proceeds to here if the request is succesful thanks to the raise-for-status function
     if data['results']:
@@ -56,15 +54,16 @@ def fetch_soil_data(lat, lon):
     url = "https://rest.isda-africa.com/soil/point"
 
     try:
-        r = requests.get(url, params=payload)
+        r = requests.get(url, params=payload, timeout=10)
         print(r.url) # test if url is alright and encoding okay
         r.raise_for_status()
     except requests.exceptions.RequestException as err:
-        print(err.response.text)
+        if err.response is not None:
+            print(err.response.text)
+        else:
+            print(f"Request failed: {err}")
         return None
 
-
-    print('Reached here')
     data = r.json()
     print(data)
     soil_data = {
