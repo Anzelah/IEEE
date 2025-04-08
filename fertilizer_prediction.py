@@ -4,8 +4,9 @@ import os
 from dotenv import load_dotenv
 import json 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestClassifier
+# from encoder_utils import load_encoders
+
+# encoder = load_encoders() 
 
 load_dotenv()
 
@@ -126,7 +127,7 @@ def get_farmer_input():
     lat, lon = get_coordinates(location)
     # Collect  farming-specific inputs to be used to train model as well
     previous_yield = float(input("Enter your previous maize yield (bags per acre): "))
-    soil_texture = input("Add a little water to your soil and rub it between your fingers. How does it feel? (e.g. gritty and falls apart easily, smooth and sticky - forms a ball, soft and holds together loosely, smooth like flour but not sticky): ")
+    soil_texture = input("Add a little water to your soil and rub it between your fingers. How does it feel? (e.g. gritty, sticky, soft, smooth): ")
     previous_crop = input("Enter the previous crop grown (e.g., maize, beans): ")
     fertilizer_used = input("Enter the type of fertilizer you used (e.g., DAP, CAN, Urea, Compost): ") # combined with yields, you can gauge their effectiveness. If implementing is hard, do it in v2
 
@@ -155,29 +156,28 @@ def recommend_fertilizer():
     """
     Use processed data to predict the best fertilizer
     """
-    raw_data = get_farmer_input()
-    if raw_data is None:
+    cleaned_raw_data = get_farmer_input()
+    if cleaned_raw_data is None:
         return
 
     # Prepare input
     categorical = [
-        raw_data["soil_texture"],
-        raw_data["previous_crop"],
-        raw_data["fertilizer_used"]
+        cleaned_raw_data["soil_texture"],
+        cleaned_raw_data["previous_crop"],
+        cleaned_raw_data["fertilizer_used"]
     ]
     numeric = [
-        raw_data["previous_yield"],
-        raw_data["ph"],
-        raw_data["nitrogen"],
-        raw_data["phosphorus"],
-        raw_data["potassium"],
-        raw_data["organic_carbon"]
+        cleaned_raw_data["previous_yield"],
+        cleaned_raw_data["ph"],
+        cleaned_raw_data["nitrogen"],
+        cleaned_raw_data["phosphorus"],
+        cleaned_raw_data["potassium"],
+        cleaned_raw_data["organic_carbon"]
     ]
 
     encoded_cats = encode_categorical(categorical, encoder)
     if encoded_cats is None:
         return
-
     normalized_nums = normalize_numerical(numeric, scaler)
 
     # Combine and predict
