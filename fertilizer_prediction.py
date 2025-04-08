@@ -6,13 +6,6 @@ import json
 
 load_dotenv()
 
-"""
-This script predict fertilizer recommendations based on input from the farmer plus soil data pulled from soilgrids API.
-"""
-# Load the trained model and the label encoder
-#model = joblib.load("fertilizer_recommendation_model.pkl")
-#encoder = joblib.load("label_encoder.pkl")
-
 def get_coordinates(location):
     """
     Convert County and Sub-county(will add ward for more precisions) to GPS coordinates using OpenCage API.
@@ -79,15 +72,43 @@ def fetch_soil_data(lat, lon):
         print("Empty or invalid JSON in response")
         return None
     
-    soil_data = { 
-        "organic_carbon": data.get("carbon_organic"),  #returns an array of dictionaries
+    soil_data = {
+        "ph": data.get("ph"),  #returns an array of dictionaries
         "nitrogen": data.get("nitrogen_total"),
         "phosphorus": data.get("phosphorous_extractable"),
         "potassium": data.get("potassium_extractable"),
-        "ph": data.get("ph"),
+        "organic_carbon": data.get("carbon_organic"), 
         "texture": data.get("texture_class")
     }
     return soil_data
+
+
+def clean_and_validate(soil_data):
+    """
+    Check for missing or invalid soil values in data pulled from the API. Will add defaults later after testing
+    """
+    required_keys = [ 'ph', 'nitrogen', 'phosphorus', 'potassium', 'organic_carbon', 'texture' ]
+    for key in required_keys:
+        if key not in soil_data or soil_data[key] is None:
+            print(f"Missing '{key}', Cannot proceed")
+            return None
+    return soil_data
+
+def encode_categorical(inputs, encoder):
+    """Encode all categorical inputs using LabelEncoder"""
+    encoded = []
+    for val in inputs:
+        try:
+            encoded.append(encoder.transform([val])[0])
+        except ValueError:
+            print(f"Unknown input category: '{val}'. Please use known categories.")
+            return None
+    return encoded
+
+def normalize_numerical(inputs, scaler):
+    """Normalize numerical inputs using fitted scaler"""
+    return scaler.transform([inputs])[0].tolist()
+
 
 # Function to get farmer input and make predictions
 def get_farmer_input():
@@ -108,63 +129,57 @@ def get_farmer_input():
     if soil_data is None:
         print("Could not fetch soil data. Please check your location and try again.")
         return None
+    
+    soil_data = clean_and_validate(soil_data)
+    if soil_data is None:
+        return None
 
     # Combine farmer inputs with fetched soil data
-    soil_data["previous_yield"] = previous_yield
-    soil_data["soil_texture"] = soil_texture
-    soil_data["previous_crop"] = previous_crop
-    soil_data["fertilizer_used"] = fertilizer_used
-    
-    # Prepare the data for prediction
-    prediction_data = [
-        soil_data["soil_texture"], 
-        soil_data["previous_crop"], 
-        soil_data["fertilizer_used"],
-        soil_data["previous_yield"],
-        soil_data["ph"],
-        soil_data["nitrogen"],
-        soil_data["phosphorus"],
-        soil_data["potassium"],
-        soil_data["organic_carbon"],
-        soil_data["texture"]
-    ]
-    return prediction_data
+    soil_data.update({
+        "previous_yield": previous_yield,
+        "soil_texture": soil_texture,
+        "previous_crop": previous_crop,
+        "fertilizer_used": fertilizer_used
+    })
+    return soil_data
 
 
 def recommend_fertilizer():
-    """Take prepared data and use it to recommend fertlizer
     """
-    prediction_data = get_farmer_input()
-    # Convert categorical data (e.g., soil_color, previous_crop) using LabelEncoder
-    encoded_data = []
-    for i, value in enumerate(prediction_data[:4]):  # The first 4 values are categorical
-        encoded_data.append(encoder.transform([value])[0])  # Transform each categorical value
-    
-    # Add numeric data (e.g., previous_yield, ph, nitrogen)
-    encoded_data.extend(prediction_data[4:])  # Add the rest of the numeric values
+    Use processed data to predict the best fertilizer
+    """
+    raw_data = get_farmer_input()
+    if raw_data is None:
+        return
 
-    # Predict fertilizer recommendation
-    prediction = model.predict([encoded_data])[0]  # Make prediction
-    
-    # Decode the prediction (convert numeric prediction back to original fertilizer type)
-    recommended_fertilizer = encoder.inverse_transform([prediction])[0]
-    
-    return f"Recommended Fertilizer: {recommended_fertilizer}"
+    # Prepare input
+    categorical = [
+        raw_data["soil_texture"],
+        raw_data["previous_crop"],
+        raw_data["fertilizer_used"]
+    ]
+    numeric = [
+        raw_data["previous_yield"],
+        raw_data["ph"],
+        raw_data["nitrogen"],
+        raw_data["phosphorus"],
+        raw_data["potassium"],
+        raw_data["organic_carbon"]
+    ]
 
-# Example of how this function might be called
-def main():
-    location = input("Enter your County and Sub-county(e.g., Nakuru, Bahati): ")
-    lat, lon = get_coordinates(location)
-    
-    if lat and lon:
-        soil_data = fetch_soil_data(lat, lon)
-        #advice = analyze_rainfall(forecast)
+    encoded_cats = encode_categorical(categorical, encoder)
+    if encoded_cats is None:
+        return
 
-        print(f"\n🌱 **Planting Advice for {location}:**\n")
-        print(soil_data)
-    else:
-        print("Invalid location. Please try again.")
+    normalized_nums = normalize_numerical(numeric, scaler)
+
+    # Combine and predict
+    final_input = encoded_cats + normalized_nums
+    prediction = model.predict([final_input])[0]
+    recommendation = encoder.inverse_transform([prediction])[0]
+
+    print(f"🌱 Recommended Fertilizer: {recommendation}")
 
 
 if __name__ == "__main__":
-    main()
+    recommend_fertilizer()
