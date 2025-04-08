@@ -3,6 +3,9 @@ import requests
 import os
 from dotenv import load_dotenv
 import json 
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
 
 load_dotenv()
 
@@ -85,17 +88,21 @@ def fetch_soil_data(lat, lon):
 
 def clean_and_validate(soil_data):
     """
-    Check for missing or invalid soil values in data pulled from the API. Will add defaults later after testing
+    Check for missing or invalid soil values in data pulled from the API. 
+    Will add defaults later after initial training as it teaches the model to predict accurately
     """
     required_keys = [ 'ph', 'nitrogen', 'phosphorus', 'potassium', 'organic_carbon', 'texture' ]
     for key in required_keys:
         if key not in soil_data or soil_data[key] is None:
-            print(f"Missing '{key}', Cannot proceed")
+            print(f"Missing or invalid data for '{key}', Cannot proceed")
             return None
     return soil_data
 
+
 def encode_categorical(inputs, encoder):
-    """Encode all categorical inputs using LabelEncoder"""
+    """
+    Encode all categorical inputs using LabelEncoder
+    """
     encoded = []
     for val in inputs:
         try:
