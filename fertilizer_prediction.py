@@ -91,12 +91,8 @@ def fetch_soil_data(lat, lon):
 
 # Function to get farmer input and make predictions
 def get_farmer_input():
-    # Ask for Farmer's Input
-    # Different soil texture: Need to refine more("1. Sandy – Feels gritty and falls apart easily, doesn't hold water well.")
-    # "2. Loamy – Feels soft and crumbly, holds together a bit, holds moisture well."
-    # "3. Clay – Feels sticky or smooth, holds together tightly, drains slowly."
-    # "4. Silty – Feels smooth like flour, holds moisture, but not sticky."
-    print('Third')
+    """Ask for farmer's input to combine with soil data for model training
+    """
 
     location = input("Enter your County and Sub-county(e.g., Nakuru, Bahati): ")
     lat, lon = get_coordinates(location)
@@ -108,46 +104,52 @@ def get_farmer_input():
 
     # Fetch soil data from SoilGrids API
     soil_data = fetch_soil_data(lat, lon)
-    
-    if soil_data:
-        # Combine farmer inputs with fetched soil data
-        soil_data["previous_yield"] = previous_yield
-        soil_data["soil_texture"] = soil_texture
-        soil_data["previous_crop"] = previous_crop
-        soil_data["fertilizer_used"] = fertilizer_used
-        
-        # Prepare the data for prediction
-        prediction_data = [
-            soil_data["soil_texture"], 
-            soil_data["previous_crop"], 
-            soil_data["fertilizer_used"],
-            soil_data["previous_yield"],
-            soil_data["ph"],
-            soil_data["nitrogen"],
-            soil_data["phosphorus"],
-            soil_data["potassium"],
-            soil_data["organic_carbon"],
-            soil_data["texture"]
-        ]
-        
-        # Convert categorical data (e.g., soil_color, previous_crop) using LabelEncoder
-        encoded_data = []
-        for i, value in enumerate(prediction_data[:4]):  # The first 4 values are categorical
-            encoded_data.append(encoder.transform([value])[0])  # Transform each categorical value
-        
-        # Add numeric data (e.g., previous_yield, ph, nitrogen)
-        encoded_data.extend(prediction_data[4:])  # Add the rest of the numeric values
 
-        # Predict fertilizer recommendation
-        prediction = model.predict([encoded_data])[0]  # Make prediction
-        
-        # Decode the prediction (convert numeric prediction back to original fertilizer type)
-        recommended_fertilizer = encoder.inverse_transform([prediction])[0]
-        
-        return f"Recommended Fertilizer: {recommended_fertilizer}"
-    else:
+    if soil_data is None:
         print("Could not fetch soil data. Please check your location and try again.")
         return None
+
+    # Combine farmer inputs with fetched soil data
+    soil_data["previous_yield"] = previous_yield
+    soil_data["soil_texture"] = soil_texture
+    soil_data["previous_crop"] = previous_crop
+    soil_data["fertilizer_used"] = fertilizer_used
+    
+    # Prepare the data for prediction
+    prediction_data = [
+        soil_data["soil_texture"], 
+        soil_data["previous_crop"], 
+        soil_data["fertilizer_used"],
+        soil_data["previous_yield"],
+        soil_data["ph"],
+        soil_data["nitrogen"],
+        soil_data["phosphorus"],
+        soil_data["potassium"],
+        soil_data["organic_carbon"],
+        soil_data["texture"]
+    ]
+    return prediction_data
+
+
+def recommend_fertilizer():
+    """Take prepared data and use it to recommend fertlizer
+    """
+    prediction_data = get_farmer_input()
+    # Convert categorical data (e.g., soil_color, previous_crop) using LabelEncoder
+    encoded_data = []
+    for i, value in enumerate(prediction_data[:4]):  # The first 4 values are categorical
+        encoded_data.append(encoder.transform([value])[0])  # Transform each categorical value
+    
+    # Add numeric data (e.g., previous_yield, ph, nitrogen)
+    encoded_data.extend(prediction_data[4:])  # Add the rest of the numeric values
+
+    # Predict fertilizer recommendation
+    prediction = model.predict([encoded_data])[0]  # Make prediction
+    
+    # Decode the prediction (convert numeric prediction back to original fertilizer type)
+    recommended_fertilizer = encoder.inverse_transform([prediction])[0]
+    
+    return f"Recommended Fertilizer: {recommended_fertilizer}"
 
 # Example of how this function might be called
 def main():
