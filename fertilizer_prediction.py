@@ -183,9 +183,12 @@ def recommend_fertilizer():
     normalized_nums = normalize_numerical(numeric, scaler)
 
     # Combine and predict
+    model = joblib.load("models/fertilizer_model.joblib")
+    target_encoder = joblib.load("models/target_encoder.joblib")
+
     final_input = encoded_cats + normalized_nums
     prediction = model.predict([final_input])[0]
-    recommendation = encoder.inverse_transform([prediction])[0]
+    recommendation = target_encoder.inverse_transform([prediction])[0]
 
     print(f"🌱 Recommended Fertilizer: {recommendation}")
 
