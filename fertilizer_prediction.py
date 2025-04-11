@@ -3,10 +3,12 @@ import requests
 import os
 from dotenv import load_dotenv
 import json 
-from sklearn.model_selection import train_test_split
-# from encoder_utils import load_encoders
+from encoder_utils import load_encoders
+from scaler_utils import load_scaler
 
-# encoder = load_encoders() 
+categorical_columns = ['soil_texture', 'previous_crop', 'fertilizer_used']
+encoder = load_encoders(categorical_columns)
+scaler = load_scaler() 
 
 load_dotenv()
 
