@@ -1,57 +1,65 @@
-import os
 import pandas as pd
-import joblib
-from sklearn.ensemble import RandomForestClassifier  # You can change to another model
+import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+import joblib
+import os
 
-from encoder_utils import fit_and_save_encoders
-from scaler_utils import fit_and_save_scaler
+# Paths
+DATA_PATH = "data/ofra_dataset.csv"
+MODEL_DIR = "models"
+MODEL_PATH = os.path.join(MODEL_DIR, "fertilizer_model.joblib")
+SCALER_PATH = os.path.join(MODEL_DIR, "scaler.joblib")
+TARGET_ENCODER_PATH = os.path.join(MODEL_DIR, "target_encoder.joblib")
+ENCODERS_PATH = os.path.join(MODEL_DIR, "encoders.joblib")
 
-# Configuration
-MODEL_PATH = "models"
-MODEL_FILENAME = f"{MODEL_PATH}/fertilizer_model.joblib"
-categorical_columns = ['soil_texture', 'previous_crop', 'fertilizer_used']
-numerical_columns = ['previous_yield', 'ph', 'nitrogen', 'phosphorus', 'potassium', 'organic_carbon']
-target_column = 'recommended_fertilizer'
+# Ensure model directory exists
+os.makedirs(MODEL_DIR, exist_ok=True)
 
-# Step 1: Load dataset
-df = pd.read_csv("training_data.csv")  # Replace with your dataset
+# Load dataset
+df = pd.read_csv(DATA_PATH)
 
-# Step 2: Drop rows with missing data
-df.dropna(subset=categorical_columns + numerical_columns + [target_column], inplace=True)
+# Define columns
+categorical_cols = ['texture', 'previous_crop']
+numerical_cols = ['ph', 'nitrogen', 'phosphorus', 'potassium', 'organic_carbon']
+target_col = 'fertilizer_used'
 
-# Step 3: Encode categorical inputs
-encoders = fit_and_save_encoders(df, categorical_columns)
-for col in categorical_columns:
-    df[col] = encoders[col].transform(df[col])
+# Split features and target
+X_cat = df[categorical_cols].copy()
+X_num = df[numerical_cols].copy()
+y = df[target_col].copy()
 
-# Step 4: Scale numerical inputs
-scaler = fit_and_save_scaler(df, numerical_columns)
-df[numerical_columns] = scaler.transform(df[numerical_columns])
+# Encode categorical features
+encoders = {}
+for col in categorical_cols:
+    le = LabelEncoder()
+    X_cat[col] = le.fit_transform(X_cat[col])
+    encoders[col] = le
 
-# Step 5: Encode target label
-target_encoder = fit_and_save_encoders(df, [target_column])[target_column]
-df[target_column] = target_encoder.transform(df[target_column])
+# Normalize numerical features
+scaler = StandardScaler()
+X_num_scaled = scaler.fit_transform(X_num)
 
-# Step 6: Split into train/test
-X = df[categorical_columns + numerical_columns]
-y = df[target_column]
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Encode target
+target_encoder = LabelEncoder()
+y_encoded = target_encoder.fit_transform(y)
 
-# Step 7: Train model
-model = RandomForestClassifier(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
+# Combine features
+X_combined = np.hstack([X_cat.values, X_num_scaled])
 
-# Step 8: Evaluate
-y_pred = model.predict(X_test)
-print("📊 Evaluation:")
-print(classification_report(y_test, y_pred, target_names=target_encoder.classes_))
+# Train/test split
+X_train, X_test, y_train, y_test = train_test_split(X_combined, y_encoded, test_size=0.2, random_state=42)
 
-# Step 9: Save model and target encoder
-if not os.path.exists(MODEL_PATH):
-    os.makedirs(MODEL_PATH)
-joblib.dump(model, MODEL_FILENAME)
-joblib.dump(target_encoder, f"{MODEL_PATH}/target_encoder.joblib")
+# Train model
+clf = RandomForestClassifier()
+clf.fit(X_train, y_train)
 
-print("✅ Model, encoders, and scaler saved.")
+# Save model and encoders
+joblib.dump(clf, MODEL_PATH)
+joblib.dump(scaler, SCALER_PATH)
+joblib.dump(target_encoder, TARGET_ENCODER_PATH)
+joblib.dump(encoders, ENCODERS_PATH)
+
+print("✅ Model and encoders trained and saved.")
+
