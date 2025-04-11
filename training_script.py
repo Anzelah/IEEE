@@ -1,53 +1,57 @@
+import os
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestClassifier
 import joblib
+from sklearn.ensemble import RandomForestClassifier  # You can change to another model
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
 
-"""
-This script handles collecting data, preprocessing it, training the model, and saving the trained model to a file.
-"""
-# Example data collection - You would replace this with real farmer data.
-data = {
-    'soil_color': ['black', 'brown', 'red', 'black', 'brown'],
-    'soil_texture': ['coarse', 'fine', 'coarse', 'fine', 'coarse'],
-    'previous_crop': ['maize', 'beans', 'maize', 'beans', 'maize'],
-    'fertilizer_used': ['DAP', 'Urea', 'DAP', 'Compost', 'DAP'],
-    'previous_yield': [30, 25, 28, 22, 35],
-    'ph': [6.5, 6.0, 5.8, 6.2, 6.4],
-    'nitrogen': [0.12, 0.08, 0.10, 0.09, 0.11],
-    'phosphorus': [12, 15, 10, 13, 14],
-    'potassium': [110, 120, 115, 118, 100],
-    'organic_carbon': [1.1, 0.9, 1.0, 1.2, 1.3],
-    'recommended_fertilizer': ['DAP', 'Urea', 'DAP', 'Compost', 'DAP']  # The target variable
-}
+from encoder_utils import fit_and_save_encoders
+from scaler_utils import fit_and_save_scaler
 
-# Convert the data into a DataFrame
-df = pd.DataFrame(data)
+# Configuration
+MODEL_PATH = "models"
+MODEL_FILENAME = f"{MODEL_PATH}/fertilizer_model.joblib"
+categorical_columns = ['soil_texture', 'previous_crop', 'fertilizer_used']
+numerical_columns = ['previous_yield', 'ph', 'nitrogen', 'phosphorus', 'potassium', 'organic_carbon']
+target_column = 'recommended_fertilizer'
 
-# Preprocessing - Encoding categorical variables
-encoder = LabelEncoder()
-df['soil_color'] = encoder.fit_transform(df['soil_color'])
-df['soil_texture'] = encoder.fit_transform(df['soil_texture'])
-df['previous_crop'] = encoder.fit_transform(df['previous_crop'])
-df['fertilizer_used'] = encoder.fit_transform(df['fertilizer_used'])
-df['recommended_fertilizer'] = encoder.fit_transform(df['recommended_fertilizer'])
+# Step 1: Load dataset
+df = pd.read_csv("training_data.csv")  # Replace with your dataset
 
-# Features and target variable
-X = df.drop('recommended_fertilizer', axis=1)
-y = df['recommended_fertilizer']
+# Step 2: Drop rows with missing data
+df.dropna(subset=categorical_columns + numerical_columns + [target_column], inplace=True)
 
-# Split the data into training and testing sets
+# Step 3: Encode categorical inputs
+encoders = fit_and_save_encoders(df, categorical_columns)
+for col in categorical_columns:
+    df[col] = encoders[col].transform(df[col])
+
+# Step 4: Scale numerical inputs
+scaler = fit_and_save_scaler(df, numerical_columns)
+df[numerical_columns] = scaler.transform(df[numerical_columns])
+
+# Step 5: Encode target label
+target_encoder = fit_and_save_encoders(df, [target_column])[target_column]
+df[target_column] = target_encoder.transform(df[target_column])
+
+# Step 6: Split into train/test
+X = df[categorical_columns + numerical_columns]
+y = df[target_column]
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Train a RandomForest Classifier
+# Step 7: Train model
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
-# Test the model
-print(f"Model accuracy: {model.score(X_test, y_test) * 100:.2f}%")
+# Step 8: Evaluate
+y_pred = model.predict(X_test)
+print("📊 Evaluation:")
+print(classification_report(y_test, y_pred, target_names=target_encoder.classes_))
 
-# Save the trained model
-joblib.dump(model, 'fertilizer_recommendation_model.pkl')
-joblib.dump(encoder, 'label_encoder.pkl')
+# Step 9: Save model and target encoder
+if not os.path.exists(MODEL_PATH):
+    os.makedirs(MODEL_PATH)
+joblib.dump(model, MODEL_FILENAME)
+joblib.dump(target_encoder, f"{MODEL_PATH}/target_encoder.joblib")
+
+print("✅ Model, encoders, and scaler saved.")
